@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  subtrans:
+    build: .
+    container_name: subtrans
+    environment:
+      - WATCH_DIRECTORY=/videos
+      - TARGET_LANGUAGE=ko
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SCAN_INTERVAL=60
+    volumes:
+      - ./videos:/videos
+    restart: unless-stopped
