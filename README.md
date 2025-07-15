@@ -1,5 +1,7 @@
 # Subtitle Translator
 
+[한국어 README](README.ko.md)
+
 This project provides an automated solution for extracting subtitles from video files, translating them using the Google Gemini API, and saving the translated subtitles as new SRT files. It continuously monitors a specified directory for new video files and processes them automatically.
 
 ## Features
