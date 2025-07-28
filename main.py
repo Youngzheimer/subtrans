@@ -1,3 +1,9 @@
+import sys
+import os
+
+# 현재 디렉토리를 Python path에 추가
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from utils import log, Config
 from file_watcher import FileWatcher
 
