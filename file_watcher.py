@@ -71,10 +71,7 @@ class FileWatcher:
                 return
             
             # 자막 추출
-            subtitle_size_kb, extracted_subtitle_paths = extract_multiple_subtitles(video_file, subtitles)
-            
-            if subtitle_size_kb is None:  # Size check failed
-                return
+            extracted_subtitle_paths = extract_multiple_subtitles(video_file, subtitles)
             
             if extracted_subtitle_paths:
                 # 번역 및 저장

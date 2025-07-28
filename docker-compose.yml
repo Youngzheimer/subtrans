@@ -8,7 +8,7 @@ services:
       - WATCH_DIRECTORY=/videos
       - TARGET_LANGUAGE=ko
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SCAN_INTERVAL=60
+      - SCAN_INTERVAL=10
     volumes:
       - ./videos:/videos
     restart: unless-stopped
