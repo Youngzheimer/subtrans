@@ -28,7 +28,13 @@ processing_videos = {}
 def update_processing_status(filename, status, current=0, total=0):
     """처리 상태를 업데이트"""
     video_id = filename.replace('/', '_').replace('\\', '_')
-    
+    # ETA 지원: 요청에서 eta가 있으면 반영
+    eta = None
+    if hasattr(request, 'json') and request.json:
+        eta = request.json.get('eta')
+    elif isinstance(request, dict):
+        eta = request.get('eta')
+
     if status == 'completed' or status == 'error':
         # 완료 또는 오류 상태는 30초 후에 목록에서 제거
         processing_videos[video_id] = {
@@ -40,13 +46,16 @@ def update_processing_status(filename, status, current=0, total=0):
             'remove_at': time.time() + 30
         }
     else:
-        processing_videos[video_id] = {
+        video_info = {
             'id': video_id,
             'filename': os.path.basename(filename),
             'status': status,
             'current': current,
             'total': total
         }
+        if eta is not None:
+            video_info['eta'] = eta
+        processing_videos[video_id] = video_info
 
 # 기본 경로 - 웹 UI 메인 페이지
 @app.route('/')

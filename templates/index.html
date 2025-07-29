@@ -259,11 +259,18 @@
                 statusBadge.textContent = '오류';
             }
             
-            // 진행률 업데이트
+            // 진행률 및 ETA 업데이트
             if (video.total > 0) {
                 const percent = Math.round((video.current / video.total) * 100);
                 progressBar.style.width = `${percent}%`;
-                progressText.textContent = `${video.current}/${video.total} (${percent}%)`;
+                let text = `${video.current}/${video.total} (${percent}%)`;
+                if (video.eta !== undefined && video.eta !== null && !isNaN(video.eta) && video.status === 'translating') {
+                    // ETA를 mm:ss로 변환
+                    const etaMin = Math.floor(video.eta / 60);
+                    const etaSec = video.eta % 60;
+                    text += ` | 남은 시간: ${etaMin}:${etaSec.toString().padStart(2, '0')}`;
+                }
+                progressText.textContent = text;
             } else {
                 progressBar.style.width = '0%';
                 progressText.textContent = '대기 중...';
