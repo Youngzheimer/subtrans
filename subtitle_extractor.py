@@ -57,8 +57,17 @@ def extract_subtitle_lines(subtitle_path):
         log(f"Error extracting subtitle lines from {subtitle_path}: {e}")
     return []
 
-def extract_multiple_subtitles(video_file, subtitles):
-    """여러 자막 스트림을 추출하고 관리"""
+def extract_multiple_subtitles(video_file, line_thresholds, streams_to_extract):
+    """여러 자막 스트림을 추출하고 관리
+    
+    Args:
+        video_file (str): 비디오 파일 경로
+        line_thresholds (list): 자막 라인 수 임계값 목록
+        streams_to_extract (list): 각 임계값 별로 추출할 자막 스트림 수
+        
+    Returns:
+        list: 추출된 자막 파일 경로 목록
+    """
     extracted_subtitle_paths = []
     
     # 자막 추출 상태 업데이트
@@ -69,25 +78,24 @@ def extract_multiple_subtitles(video_file, subtitles):
     if not first_extracted_path:
         log(f"Could not extract the first subtitle stream for {video_file}. Skipping.")
         processing_status.error(video_file)
-        return None, []
+        return []
     
     extracted_subtitle_paths.append(first_extracted_path)
 
     lines = extract_subtitle_lines(first_extracted_path)    
     if not lines:
         log(f"No valid subtitle lines extracted from {first_extracted_path}. Skipping translation.")
-        return None, []
-    
-    # 설정 객체 생성
-    config_obj = Config()
+        return []
     
     # Determine number of subtitles to extract based on the first subtitle length
     line_count = len(lines)
-    num_to_extract_total = config_obj.SUBTITLE_STREAMS_TO_EXTRACT[-1]  # 기본값: 가장 적은 수
+    num_to_extract_total = streams_to_extract[-1]  # 기본값: 가장 적은 수
     
-    for i, threshold in enumerate(config_obj.SUBTITLE_LINE_THRESHOLDS):
+    # 자막 라인 수에 따라 추출할 자막 수 결정
+    for i, threshold in enumerate(line_thresholds):
         if line_count < threshold:
-            num_to_extract_total = min(len(subtitles), config_obj.SUBTITLE_STREAMS_TO_EXTRACT[i])
+            # 자막 스트림 수는 0부터 시작하므로 총 스트림 수 계산 시 주의
+            num_to_extract_total = streams_to_extract[i]
             break
     
     log(f"Total {len(lines)} lines of subtitles, extracting {num_to_extract_total} subtitle streams from {video_file}.")
@@ -107,15 +115,13 @@ def extract_multiple_subtitles(video_file, subtitles):
     
     # Extract additional subtitles if num_to_extract_total is greater than 1
     for i in range(1, num_to_extract_total):
-        if i < len(subtitles):
-            additional_extracted_path = extract_subtitle(video_file, i)
-            if additional_extracted_path:
-                log(f"  - Successfully extracted stream {i} to: {os.path.basename(additional_extracted_path)}")
-                extracted_subtitle_paths.append(additional_extracted_path)
-            else:
-                log(f"Could not extract additional subtitle stream {i} for {video_file}. Continuing with extracted streams.")
+        # 자막 스트림 인덱스가 존재하는지 확인하기는 어려우므로 시도해보고 실패하면 중단
+        additional_extracted_path = extract_subtitle(video_file, i)
+        if additional_extracted_path:
+            log(f"  - Successfully extracted stream {i} to: {os.path.basename(additional_extracted_path)}")
+            extracted_subtitle_paths.append(additional_extracted_path)
         else:
-            log(f"No more subtitle streams available to extract (requested {num_to_extract_total}, but only {len(subtitles)} exist).")
+            log(f"Could not extract additional subtitle stream {i} for {video_file}. Continuing with extracted streams.")
             break
     
     return extracted_subtitle_paths

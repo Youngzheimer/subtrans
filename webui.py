@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, R
 from flask_cors import CORS
 from config import config_manager, DEFAULT_CONFIG, BASE_DIR
 from processing_status import ProcessingStatus
+from utils import Config
 
 # Flask 앱 생성
 app = Flask(__name__, template_folder='templates')
@@ -150,6 +151,117 @@ def api_update_status():
     
     update_processing_status(filename, status, current, total)
     return jsonify({'success': True})
+
+# 모니터링 폴더 브라우징 API 엔드포인트
+@app.route('/api/browse', methods=['GET'])
+def browse_directory():
+    """모니터링 폴더 브라우징 API"""
+    # 현재 설정된 감시 디렉토리 가져오기
+    config = Config()
+    watch_dir = config.WATCH_DIRECTORY
+    
+    # 서브 디렉토리 경로 (query parameter로 받음)
+    subdir = request.args.get('path', '')
+    
+    # 전체 경로 구성
+    current_path = os.path.normpath(os.path.join(watch_dir, subdir))
+    
+    # 보안을 위해 watch_dir 밖으로 나가지 못하도록 체크
+    if not current_path.startswith(watch_dir):
+        return jsonify({'error': '유효하지 않은 경로입니다.'}), 400
+    
+    # 디렉토리가 존재하는지 확인
+    if not os.path.exists(current_path) or not os.path.isdir(current_path):
+        return jsonify({'error': '디렉토리를 찾을 수 없습니다.'}), 404
+    
+    try:
+        items = []
+        for item in os.listdir(current_path):
+            item_path = os.path.join(current_path, item)
+            is_dir = os.path.isdir(item_path)
+            relative_path = os.path.relpath(item_path, watch_dir)
+            
+            # 숨김 파일 및 폴더 제외
+            if item.startswith('.'):
+                continue
+                
+            # 항목 정보 추가
+            item_info = {
+                'name': item,
+                'path': relative_path.replace('\\', '/'),  # Windows 경로 처리
+                'type': 'directory' if is_dir else 'file',
+                'size': os.path.getsize(item_path) if not is_dir else 0,
+                'modified': os.path.getmtime(item_path)
+            }
+            
+            # 파일 확장자 추가 (파일인 경우)
+            if not is_dir:
+                _, ext = os.path.splitext(item)
+                item_info['extension'] = ext.lower()
+                
+            items.append(item_info)
+            
+        # 결과 반환
+        return jsonify({
+            'current_path': subdir,
+            'items': sorted(items, key=lambda x: (0 if x['type'] == 'directory' else 1, x['name'].lower()))
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API 엔드포인트 - 영상 파일 번역 시작
+@app.route('/api/translate', methods=['POST'])
+def start_translation():
+    """영상 파일 번역 시작 API"""
+    data = request.json
+    
+    if not data or 'filepath' not in data:
+        return jsonify({'error': '유효하지 않은 요청입니다.'}), 400
+    
+    filepath = data['filepath']
+    config = Config()
+    watch_dir = config.WATCH_DIRECTORY
+    
+    # 전체 경로 구성
+    full_path = os.path.normpath(os.path.join(watch_dir, filepath))
+    
+    # 보안을 위해 watch_dir 밖으로 나가지 못하도록 체크
+    if not full_path.startswith(watch_dir):
+        return jsonify({'error': '유효하지 않은 경로입니다.'}), 400
+    
+    # 파일이 존재하는지 확인
+    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        return jsonify({'error': '파일을 찾을 수 없습니다.'}), 404
+    
+    # 파일 확장자 확인
+    _, ext = os.path.splitext(full_path)
+    if ext.lower() not in ['.mkv', '.mp4', '.mov', '.avi']:
+        return jsonify({'error': '지원하지 않는 파일 형식입니다.'}), 400
+    
+    try:
+        # 처리 상태 생성
+        update_processing_status(full_path, 'queued')
+        
+        # 여기서 실제 처리를 시작하는 로직을 추가
+        # 백그라운드 작업으로 처리하거나 파일을 처리 큐에 추가
+        from video_processor import process_video
+        import threading
+        
+        # 비동기적으로 비디오 처리 시작
+        thread = threading.Thread(target=process_video, args=(full_path, Config()))
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'message': '번역이 시작되었습니다.', 'filename': os.path.basename(full_path)}), 200
+    except Exception as e:
+        update_processing_status(full_path, 'error')
+        return jsonify({'error': str(e)}), 500
+
+# 브라우저 페이지 라우트
+@app.route('/browse')
+def browse_page():
+    """폴더 브라우징 페이지"""
+    return render_template('browse.html')
 
 # 메인 함수
 def main():

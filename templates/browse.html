@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubTrans - 폴더 브라우징</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .file-explorer {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .path-nav {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+        }
+        .path-nav .breadcrumb {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .path-nav .breadcrumb li {
+            display: inline;
+            margin-right: 5px;
+        }
+        .path-nav .breadcrumb li:after {
+            content: "/";
+            margin-left: 5px;
+            color: #6c757d;
+        }
+        .path-nav .breadcrumb li:last-child:after {
+            content: "";
+        }
+        .path-nav .breadcrumb a {
+            text-decoration: none;
+            color: #3498db;
+        }
+        .path-nav .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-item:hover {
+            background-color: #f8f9fa;
+        }
+        .file-icon {
+            margin-right: 10px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-icon i {
+            font-size: 18px;
+        }
+        .file-name {
+            flex-grow: 1;
+        }
+        .file-name a {
+            text-decoration: none;
+            color: #333;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-name a:hover {
+            color: #3498db;
+        }
+        .file-details {
+            color: #6c757d;
+            font-size: 0.85em;
+            min-width: 120px;
+            text-align: right;
+        }
+        .empty-folder {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+        }
+        .folder-item a {
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .back-link {
+            margin-bottom: 15px;
+        }
+        .back-link a {
+            text-decoration: none;
+            color: #3498db;
+        }
+        .video-file {
+            color: #e74c3c;
+        }
+        .subtitle-file {
+            color: #3498db;
+        }
+        
+        /* 추가: 상단 네비게이션 스타일 */
+        nav {
+            margin-bottom: 20px;
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            background-color: #2c3e50;
+            border-radius: 5px;
+        }
+        nav li {
+            padding: 0;
+        }
+        nav a {
+            display: block;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+        }
+        nav a:hover {
+            background-color: #34495e;
+        }
+        nav .active {
+            background-color: #3498db;
+        }
+        
+        /* 파일 크기를 사람이 읽기 쉬운 형식으로 표시 */
+        .file-size {
+            min-width: 80px;
+            text-align: right;
+            margin-right: 10px;
+        }
+        
+        /* 번역 버튼 스타일 */
+        .translate-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .translate-btn:hover {
+            background-color: #2ecc71;
+        }
+        .translate-btn:active {
+            background-color: #219653;
+        }
+        .translate-btn.disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        /* 알림 메시지 스타일 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease-out;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+        .notification.success {
+            background-color: #27ae60;
+        }
+        .notification.error {
+            background-color: #e74c3c;
+        }
+    </style>
+    <!-- Font Awesome 아이콘 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body>
+    <h1>SubTrans - 폴더 브라우징</h1>
+    
+    <nav>
+        <ul>
+            <li><a href="/">홈</a></li>
+            <li><a href="/browse" class="active">폴더 브라우징</a></li>
+            <li><a href="/config">설정</a></li>
+        </ul>
+    </nav>
+    
+    <div class="container">
+        <div class="file-explorer">
+            <div class="path-nav">
+                <ol class="breadcrumb" id="breadcrumb">
+                    <li><a href="#" data-path="">루트</a></li>
+                </ol>
+            </div>
+            
+            <div id="file-container">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 로딩 중...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL에서 path 파라미터 가져오기
+            const urlParams = new URLSearchParams(window.location.search);
+            let currentPath = urlParams.get('path') || '';
+            
+            // 폴더 내용 로드
+            loadDirectory(currentPath);
+            
+            // 경로 이동 이벤트 리스너
+            document.addEventListener('click', function(e) {
+                // 경로 이동 링크 처리
+                if (e.target.classList.contains('path-link')) {
+                    e.preventDefault();
+                    const path = e.target.getAttribute('data-path');
+                    navigateTo(path);
+                }
+                
+                // 브레드크럼 링크 처리
+                if (e.target.closest('#breadcrumb a')) {
+                    e.preventDefault();
+                    const pathElem = e.target.closest('#breadcrumb a');
+                    const path = pathElem.getAttribute('data-path');
+                    navigateTo(path);
+                }
+            });
+        });
+        
+        // 디렉토리 내용 불러오기
+        function loadDirectory(path) {
+            const container = document.getElementById('file-container');
+            container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 로딩 중...</div>';
+            
+            fetch(`/api/browse?path=${encodeURIComponent(path)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('폴더를 불러오는 중 오류가 발생했습니다.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    updateBreadcrumb(data.current_path);
+                    displayItems(data.items, container);
+                    
+                    // 페이지 URL 업데이트 (히스토리 엔트리 추가)
+                    const url = new URL(window.location);
+                    url.searchParams.set('path', data.current_path);
+                    window.history.pushState({}, '', url);
+                })
+                .catch(error => {
+                    container.innerHTML = `<div class="empty-folder">오류: ${error.message}</div>`;
+                });
+        }
+        
+        // 파일 및 폴더 표시
+        function displayItems(items, container) {
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty-folder">이 폴더는 비어 있습니다.</div>';
+                return;
+            }
+            
+            let html = '<ul class="file-list">';
+            
+            // 먼저 폴더를 보여주고, 그 다음 파일들을 보여줌
+            items.forEach(item => {
+                const isVideo = item.type === 'file' && ['.mp4', '.mkv', '.avi', '.mov'].includes(item.extension);
+                const isSubtitle = item.type === 'file' && ['.srt', '.ass', '.vtt'].includes(item.extension);
+                
+                let iconClass = '';
+                if (item.type === 'directory') {
+                    iconClass = 'fa-folder';
+                } else if (isVideo) {
+                    iconClass = 'fa-film video-file';
+                } else if (isSubtitle) {
+                    iconClass = 'fa-closed-captioning subtitle-file';
+                } else {
+                    iconClass = 'fa-file';
+                }
+                
+                const itemClass = item.type === 'directory' ? 'folder-item' : 'file-item';
+                const date = new Date(item.modified * 1000).toLocaleString();
+                const size = item.type === 'file' ? formatFileSize(item.size) : '';
+                
+                html += `
+                    <li class="file-item ${itemClass}">
+                        <div class="file-icon">
+                            <i class="fas ${iconClass}"></i>
+                        </div>
+                        <div class="file-name">
+                            ${item.type === 'directory' 
+                                ? `<a href="#" class="path-link" data-path="${item.path}">${item.name}/</a>`
+                                : `<span>${item.name}</span>`
+                            }
+                        </div>
+                        <div class="file-size">${size}</div>
+                        <div class="file-details">${date}</div>
+                        ${isVideo ? `
+                        <div class="file-actions">
+                            <button class="translate-btn" data-path="${item.path}" onclick="startTranslation('${item.path}')">
+                                <i class="fas fa-language"></i> 번역 시작
+                            </button>
+                        </div>
+                        ` : ''}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+        
+        // 브레드크럼 경로 표시 업데이트
+        function updateBreadcrumb(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            
+            // 루트 경로만 남기고 모두 제거
+            while (breadcrumb.children.length > 1) {
+                breadcrumb.removeChild(breadcrumb.lastChild);
+            }
+            
+            if (!path) return;
+            
+            // 경로를 '/' 기준으로 분리
+            const parts = path.split('/').filter(part => part);
+            let currentPath = '';
+            
+            // 각 경로 부분에 대해 브레드크럼 아이템 추가
+            parts.forEach((part, index) => {
+                currentPath += `${part}/`;
+                const li = document.createElement('li');
+                
+                // 마지막 아이템이 아니면 링크로 표시
+                if (index < parts.length - 1) {
+                    li.innerHTML = `<a href="#" data-path="${currentPath.slice(0, -1)}">${part}</a>`;
+                } else {
+                    li.textContent = part;
+                }
+                
+                breadcrumb.appendChild(li);
+            });
+        }
+        
+        // 새 경로로 이동
+        function navigateTo(path) {
+            currentPath = path;
+            loadDirectory(path);
+        }
+        
+        // 파일 크기 포맷팅
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+        }
+        
+        // 번역 시작 함수
+        function startTranslation(filepath) {
+            const button = event.target.closest('.translate-btn');
+            button.disabled = true;
+            button.classList.add('disabled');
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+            
+            fetch('/api/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filepath })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || '번역 작업을 시작하는 중 오류가 발생했습니다.');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showNotification('번역이 시작되었습니다. 홈 페이지에서 진행 상황을 확인할 수 있습니다.', 'success');
+                
+                // 3초 후 홈 페이지로 이동 (진행상황 확인)
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+            })
+            .catch(error => {
+                showNotification(error.message, 'error');
+                button.disabled = false;
+                button.classList.remove('disabled');
+                button.innerHTML = '<i class="fas fa-language"></i> 번역 시작';
+            });
+        }
+        
+        // 알림 표시 함수
+        function showNotification(message, type = 'info') {
+            // 기존 알림 제거
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => {
+                notification.remove();
+            });
+            
+            // 새 알림 생성
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // 애니메이션 효과
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            // 5초 후 알림 제거
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+    </script>
+    
+    <!-- 알림 영역 -->
+    <div id="notifications-area"></div>
+</body>
+</html>

@@ -19,6 +19,33 @@
             border-bottom: 2px solid #3498db;
             padding-bottom: 10px;
         }
+        /* 네비게이션 메뉴 스타일 */
+        nav {
+            margin-bottom: 20px;
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            background-color: #2c3e50;
+            border-radius: 5px;
+        }
+        nav li {
+            padding: 0;
+        }
+        nav a {
+            display: block;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+        }
+        nav a:hover {
+            background-color: #34495e;
+        }
+        nav .active {
+            background-color: #3498db;
+        }
         .container {
             background-color: white;
             padding: 20px;
@@ -118,9 +145,13 @@
 <body>
     <h1>SubTrans 설정</h1>
     
-    <div class="nav-bar">
-        <a href="/">메인으로</a>
-    </div>
+    <nav>
+        <ul>
+            <li><a href="/">홈</a></li>
+            <li><a href="/browse">폴더 브라우징</a></li>
+            <li><a href="/config" class="active">설정</a></li>
+        </ul>
+    </nav>
 
     <div id="success-message" class="success-message">
         설정이 저장되었습니다.
