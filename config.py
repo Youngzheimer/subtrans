@@ -32,18 +32,24 @@ DEFAULT_CONFIG = {
     "TRANSLATION_RETRY_MAX_SECONDS": 60,  # 최대 재시도 대기 시간 (초)
 }
 
+def sync_module_vars():
+    """ConfigManager._config의 값을 모듈 전역 변수로 동기화"""
+    globals_ = globals()
+    for key in DEFAULT_CONFIG.keys():
+        globals_[key] = ConfigManager._config.get(key)
+
 class ConfigManager:
     """설정 관리 클래스"""
     _instance = None
     _initialized = False
     _config = {}
     CONFIG_DIR = CONFIG_DIR
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if not ConfigManager._initialized:
             self._ensure_config_dir()
@@ -103,7 +109,6 @@ class ConfigManager:
             # API 키 검증
             if not self.get("GEMINI_API_KEY"):
                 logger.error("GEMINI_API_KEY가 설정되지 않았습니다.")
-                raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다. 설정을 업데이트해주세요.")
             
         except sqlite3.Error as e:
             logger.error(f"설정 로드 오류: {e}")
@@ -118,7 +123,7 @@ class ConfigManager:
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
-            
+
             # 설정 저장 또는 업데이트
             cursor.execute(
                 "INSERT OR REPLACE INTO config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
@@ -126,9 +131,10 @@ class ConfigManager:
             )
             conn.commit()
             conn.close()
-            
-            # 메모리 캐시 업데이트
+
+            # 메모리 캐시 및 모듈 변수 동기화
             ConfigManager._config[key] = value
+            sync_module_vars()
             logger.info(f"설정 업데이트: {key}")
             return True
         except sqlite3.Error as e:
@@ -141,15 +147,4 @@ class ConfigManager:
 
 # 설정 인스턴스 생성 및 전역 변수로 노출
 config_manager = ConfigManager()
-
-# 설정 값을 모듈 레벨 변수로 노출
-WATCH_DIRECTORY = config_manager.get("WATCH_DIRECTORY")
-TARGET_LANGUAGE = config_manager.get("TARGET_LANGUAGE")
-GEMINI_API_KEY = config_manager.get("GEMINI_API_KEY")
-SCAN_INTERVAL = config_manager.get("SCAN_INTERVAL")
-SUBTITLE_LINE_THRESHOLDS = config_manager.get("SUBTITLE_LINE_THRESHOLDS")
-SUBTITLE_STREAMS_TO_EXTRACT = config_manager.get("SUBTITLE_STREAMS_TO_EXTRACT")
-TRANSLATION_CHUNK_SIZE = config_manager.get("TRANSLATION_CHUNK_SIZE")
-TRANSLATION_MAX_RETRIES = config_manager.get("TRANSLATION_MAX_RETRIES")
-TRANSLATION_RETRY_BASE_SECONDS = config_manager.get("TRANSLATION_RETRY_BASE_SECONDS")
-TRANSLATION_RETRY_MAX_SECONDS = config_manager.get("TRANSLATION_RETRY_MAX_SECONDS")
+sync_module_vars()
