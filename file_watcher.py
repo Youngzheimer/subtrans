@@ -6,6 +6,7 @@ import config
 from video_processor import get_video_files, get_subtitle_info, check_existing_target_language
 from subtitle_extractor import extract_multiple_subtitles, cleanup_subtitle_files
 from translator import SubtitleTranslator
+from processing_status import processing_status
 
 class FileWatcher:
     """파일 감시 및 처리를 담당하는 클래스"""

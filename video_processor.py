@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 from utils import log
+from processing_status import processing_status
 
 def get_video_files(directory):
     """지정된 디렉토리에서 비디오 파일들을 찾아 반환"""

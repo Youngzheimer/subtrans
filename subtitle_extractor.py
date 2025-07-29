@@ -5,6 +5,7 @@ import pysrt
 import ass
 import webvtt
 from utils import Config
+from processing_status import processing_status
 
 def extract_subtitle(video_path, subtitle_relative_index):
     """비디오에서 자막을 추출"""
@@ -60,10 +61,14 @@ def extract_multiple_subtitles(video_file, subtitles):
     """여러 자막 스트림을 추출하고 관리"""
     extracted_subtitle_paths = []
     
+    # 자막 추출 상태 업데이트
+    processing_status.start_extracting(video_file)
+    
     # Always extract the first subtitle stream to check its size
     first_extracted_path = extract_subtitle(video_file, 0)
     if not first_extracted_path:
         log(f"Could not extract the first subtitle stream for {video_file}. Skipping.")
+        processing_status.error(video_file)
         return None, []
     
     extracted_subtitle_paths.append(first_extracted_path)

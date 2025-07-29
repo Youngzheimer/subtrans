@@ -5,6 +5,7 @@ import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 from utils import log, Config
 from subtitle_extractor import extract_subtitle_lines
+from processing_status import processing_status
 
 class SubtitleTranslator:
     """Gemini API를 사용한 자막 번역 클래스"""
@@ -18,6 +19,7 @@ class SubtitleTranslator:
         """자막을 번역하고 저장"""
         if not subtitle_paths:
             log("No subtitle files provided. Skipping translation.")
+            processing_status.error(video_path)
             return
             
         try:
@@ -27,6 +29,7 @@ class SubtitleTranslator:
             
             if not subs:
                 log(f"No subtitles found in {subtitle_paths[0]}. Skipping translation.")
+                processing_status.error(video_path)
                 return
                 
             # 자막 줄 추출 (첫 번째 자막 파일에서)
@@ -34,7 +37,11 @@ class SubtitleTranslator:
             
             if not subtitle_lines:
                 log(f"No subtitle lines could be extracted from {subtitle_paths[0]}. Skipping translation.")
+                processing_status.error(video_path)
                 return
+                
+            # 번역 시작 상태 업데이트
+            processing_status.start_translating(video_path, len(subtitle_lines))
                 
             # 줄 단위로 번역
             translated_lines = self._translate_subtitle_lines(subtitle_lines, video_path)
@@ -45,8 +52,12 @@ class SubtitleTranslator:
             # 번역된 자막 저장
             self._save_translated_subtitles(translated_subtitles, video_path)
             
+            # 번역 완료 상태 업데이트
+            processing_status.complete(video_path)
+            
         except Exception as e:
             log(f"Error translating or saving subtitle for {video_path}: {e}")
+            processing_status.error(video_path)
     
     def _translate_subtitle_lines(self, subtitle_lines, video_path):
         """자막 줄 목록을 번역"""
@@ -62,9 +73,13 @@ class SubtitleTranslator:
             if translated_chunk:
                 translated_lines.extend(translated_chunk)
             
-            progress = (i + len(chunk)) / total_lines * 100
-            log(f"Translation progress for {os.path.basename(video_path)}: {progress:.2f}% "
-                f"({i + len(chunk)}/{total_lines} lines translated)")
+            # 진행 상황 업데이트 (로그 및 웹 UI)
+            progress = min(i + len(chunk), total_lines)
+            processing_status.update_translation_progress(video_path, progress, total_lines)
+            
+            progress_percent = (progress / total_lines * 100)
+            log(f"Translation progress for {os.path.basename(video_path)}: {progress_percent:.2f}% "
+                f"({progress}/{total_lines} lines translated)")
         
         return translated_lines
         

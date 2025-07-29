@@ -20,8 +20,9 @@ RUN mkdir -p /app/config
 # Create templates directory
 RUN mkdir -p /app/templates
 
-# Copy all Python modules
+# Copy all Python modules and templates
 COPY *.py .
+COPY templates/ /app/templates/
 
 # Expose port for web UI
 EXPOSE 8080

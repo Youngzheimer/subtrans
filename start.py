@@ -37,9 +37,9 @@ def main():
     if not os.path.exists(config_manager.CONFIG_DIR):
         os.makedirs(config_manager.CONFIG_DIR)
     
-    # 웹 UI 템플릿 초기화
-    if not os.path.exists(os.path.join(webui.TEMPLATES_DIR, 'index.html')):
-        webui.create_templates()
+    # 웹 UI 템플릿 디렉토리 확인
+    if not os.path.exists(webui.TEMPLATES_DIR):
+        os.makedirs(webui.TEMPLATES_DIR)
     
     # 웹 UI 스레드 시작
     web_thread = threading.Thread(target=run_web_ui, daemon=True)
