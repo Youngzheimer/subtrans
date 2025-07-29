@@ -1,2 +1,5 @@
 google-generativeai
 srt
+pysrt
+ass
+webvtt-py

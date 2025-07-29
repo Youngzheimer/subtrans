@@ -14,8 +14,8 @@ ENV PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy main script
-COPY main.py .
+# Copy all Python modules
+COPY *.py .
 
 # Command to run the script
 CMD ["python", "main.py"]
