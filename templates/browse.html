@@ -241,6 +241,11 @@
                 </ol>
             </div>
             
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
+                <button id="translate-all-btn" class="translate-btn" style="display:none;">
+                    <i class="fas fa-language"></i> 모든 비디오 번역
+                </button>
+            </div>
             <div id="file-container">
                 <div class="loading">
                     <i class="fas fa-spinner fa-spin"></i> 로딩 중...
@@ -307,16 +312,15 @@
         function displayItems(items, container) {
             if (items.length === 0) {
                 container.innerHTML = '<div class="empty-folder">이 폴더는 비어 있습니다.</div>';
+                document.getElementById('translate-all-btn').style.display = 'none';
                 return;
             }
-            
             let html = '<ul class="file-list">';
-            
-            // 먼저 폴더를 보여주고, 그 다음 파일들을 보여줌
+            let videoFiles = [];
             items.forEach(item => {
                 const isVideo = item.type === 'file' && ['.mp4', '.mkv', '.avi', '.mov'].includes(item.extension);
                 const isSubtitle = item.type === 'file' && ['.srt', '.ass', '.vtt'].includes(item.extension);
-                
+                if (isVideo) videoFiles.push(item.path);
                 let iconClass = '';
                 if (item.type === 'directory') {
                     iconClass = 'fa-folder';
@@ -327,11 +331,9 @@
                 } else {
                     iconClass = 'fa-file';
                 }
-                
                 const itemClass = item.type === 'directory' ? 'folder-item' : 'file-item';
                 const date = new Date(item.modified * 1000).toLocaleString();
                 const size = item.type === 'file' ? formatFileSize(item.size) : '';
-                
                 html += `
                     <li class="file-item ${itemClass}">
                         <div class="file-icon">
@@ -355,10 +357,68 @@
                     </li>
                 `;
             });
-            
             html += '</ul>';
             container.innerHTML = html;
+            // 번역 전체 버튼 표시/숨김
+            const translateAllBtn = document.getElementById('translate-all-btn');
+            if (videoFiles.length > 0) {
+                translateAllBtn.style.display = '';
+                translateAllBtn.disabled = false;
+                translateAllBtn.classList.remove('disabled');
+                translateAllBtn.innerHTML = '<i class="fas fa-language"></i> 모든 비디오 번역';
+                translateAllBtn.setAttribute('data-videos', JSON.stringify(videoFiles));
+            } else {
+                translateAllBtn.style.display = 'none';
+            }
         }
+        // 모든 비디오 번역 버튼 이벤트
+        document.addEventListener('DOMContentLoaded', function() {
+            const translateAllBtn = document.getElementById('translate-all-btn');
+            if (translateAllBtn) {
+                translateAllBtn.addEventListener('click', async function() {
+                    const videoFiles = JSON.parse(translateAllBtn.getAttribute('data-videos') || '[]');
+                    if (videoFiles.length === 0) return;
+                    translateAllBtn.disabled = true;
+                    translateAllBtn.classList.add('disabled');
+                    let successCount = 0;
+                    let failCount = 0;
+                    for (let i = 0; i < videoFiles.length; i++) {
+                        const file = videoFiles[i];
+                        translateAllBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 처리 중... (${i+1}/${videoFiles.length})`;
+                        try {
+                            const response = await fetch('/api/translate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filepath: file })
+                            });
+                            if (!response.ok) {
+                                let errMsg = '번역 작업을 시작하는 중 오류가 발생했습니다.';
+                                try {
+                                    const data = await response.json();
+                                    errMsg = data.error || errMsg;
+                                } catch {}
+                                showNotification(`${file}: ${errMsg}`, 'error');
+                                failCount++;
+                            } else {
+                                successCount++;
+                            }
+                        } catch (error) {
+                            showNotification(`${file}: ${error.message}`, 'error');
+                            failCount++;
+                        }
+                    }
+                    if (successCount > 0) {
+                        showNotification(`총 ${successCount}개의 비디오 번역이 시작되었습니다. 홈 페이지에서 진행 상황을 확인할 수 있습니다.`, 'success');
+                    }
+                    if (failCount > 0) {
+                        showNotification(`총 ${failCount}개의 비디오 번역 요청에 실패했습니다.`, 'error');
+                    }
+                    translateAllBtn.disabled = false;
+                    translateAllBtn.classList.remove('disabled');
+                    translateAllBtn.innerHTML = '<i class="fas fa-language"></i> 모든 비디오 번역';
+                });
+            }
+        });
         
         // 브레드크럼 경로 표시 업데이트
         function updateBreadcrumb(path) {
@@ -431,11 +491,6 @@
             })
             .then(data => {
                 showNotification('번역이 시작되었습니다. 홈 페이지에서 진행 상황을 확인할 수 있습니다.', 'success');
-                
-                // 3초 후 홈 페이지로 이동 (진행상황 확인)
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 3000);
             })
             .catch(error => {
                 showNotification(error.message, 'error');
