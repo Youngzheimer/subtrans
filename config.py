@@ -30,6 +30,7 @@ DEFAULT_CONFIG = {
     "TRANSLATION_MAX_RETRIES": 5,  # 번역 재시도 횟수
     "TRANSLATION_RETRY_BASE_SECONDS": 5,  # 재시도 기본 대기 시간 (초)
     "TRANSLATION_RETRY_MAX_SECONDS": 60,  # 최대 재시도 대기 시간 (초)
+    "TRANSLATION_GEMINI_MODEL": "gemini-2.5-flash-lite",  # 기본 모델 설정
 }
 
 def sync_module_vars():

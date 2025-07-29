@@ -1,6 +1,7 @@
 import os
 import time
 import srt
+import config
 import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 from utils import log, Config
@@ -13,7 +14,7 @@ class SubtitleTranslator:
     def __init__(self, api_key, target_language):
         self.target_language = target_language
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel(config.TRANSLATION_GEMINI_MODEL)
     
     def translate_and_save_subtitle(self, subtitle_paths, video_path):
         """자막을 번역하고 저장"""
