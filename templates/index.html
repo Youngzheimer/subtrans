@@ -271,9 +271,12 @@
                     text += ` | 남은 시간: ${etaMin}:${etaSec.toString().padStart(2, '0')}`;
                 }
                 progressText.textContent = text;
-            } else {
+            } else if (video.status in ['extracting', 'translating']) {
                 progressBar.style.width = '0%';
                 progressText.textContent = '대기 중...';
+            } else {
+                progressBar.style.width = '100%';
+                progressText.textContent = '완료';
             }
         }
         
