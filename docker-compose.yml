@@ -5,10 +5,10 @@ services:
     build: .
     container_name: subtrans
     environment:
-      - WATCH_DIRECTORY=/videos
-      - TARGET_LANGUAGE=ko
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SCAN_INTERVAL=10
+      - GEMINI_API_KEY=${GEMINI_API_KEY}  # 초기 API 키 설정
+    ports:
+      - "8080:8080"  # 웹 UI 포트 매핑
     volumes:
-      - ./videos:/videos
+      - ./videos:/videos  # 비디오 폴더
+      - ./config:/app/config  # 설정 데이터베이스 유지
     restart: unless-stopped

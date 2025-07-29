@@ -14,8 +14,18 @@ ENV PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create config directory for persistent storage
+RUN mkdir -p /app/config
+
+# Create templates directory
+RUN mkdir -p /app/templates
+
 # Copy all Python modules
 COPY *.py .
+COPY templates/ templates/
 
-# Command to run the script
-CMD ["python", "main.py"]
+# Expose port for web UI
+EXPOSE 8080
+
+# Command to run both web UI and main process
+CMD ["python", "start.py"]

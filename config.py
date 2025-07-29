@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 # 기본 설정값 정의
 DEFAULT_CONFIG = {
     # 기본 경로 설정
-    "WATCH_DIRECTORY": "/videos",
-    "TARGET_LANGUAGE": "en",
+    "WATCH_DIRECTORY": "/videos",  # 도커에서 마운트된 볼륨 경로
+    "TARGET_LANGUAGE": "ko",       # 기본 한국어로 설정
     "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),  # 초기값은 환경변수에서 가져옴
-    "SCAN_INTERVAL": 60,  # In seconds
+    "SCAN_INTERVAL": 30,  # In seconds
     
     # 자막 추출 관련 설정
     "SUBTITLE_LINE_THRESHOLDS": [100, 200, 300],  # 자막 줄 수 임계값
@@ -37,6 +37,7 @@ class ConfigManager:
     _instance = None
     _initialized = False
     _config = {}
+    CONFIG_DIR = CONFIG_DIR
     
     def __new__(cls):
         if cls._instance is None:
