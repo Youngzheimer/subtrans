@@ -5,6 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from utils import log, Config
+import config
 from file_watcher import FileWatcher
 
 def main():

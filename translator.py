@@ -3,7 +3,7 @@ import time
 import srt
 import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
-from utils import log
+from utils import log, Config
 
 class SubtitleTranslator:
     """Gemini API를 사용한 자막 번역 클래스"""
@@ -47,9 +47,12 @@ class SubtitleTranslator:
     
     def _translate_subtitles_in_chunks(self, subs, video_path):
         """자막을 청크 단위로 번역"""
+        # 설정 객체 생성
+        config_obj = Config()
+        
         total_subtitles = len(subs)
         translated_subtitles = []
-        chunk_size = 10  # Translate 10 subtitles at a time
+        chunk_size = config_obj.TRANSLATION_CHUNK_SIZE
         
         for i in range(0, total_subtitles, chunk_size):
             chunk = subs[i:i + chunk_size]
@@ -66,10 +69,13 @@ class SubtitleTranslator:
     
     def _translate_chunk(self, chunk, video_path, chunk_index):
         """개별 청크를 번역"""
+        # 설정 객체 생성
+        config_obj = Config()
+        
         chunk_text = srt.compose(chunk)
         prompt = self._create_translation_prompt(chunk_text)
         
-        retries = 5
+        retries = config_obj.TRANSLATION_MAX_RETRIES
         for attempt in range(retries):
             try:
                 response = self.model.generate_content(prompt)
@@ -77,7 +83,8 @@ class SubtitleTranslator:
                 return list(srt.parse(translated_chunk_text))
                 
             except ResourceExhausted as e:
-                wait_time = min(60, 2**(attempt+1) * 5)  # Cap at 60 seconds
+                wait_time = min(config_obj.TRANSLATION_RETRY_MAX_SECONDS, 
+                               2**(attempt+1) * config_obj.TRANSLATION_RETRY_BASE_SECONDS)
                 log(f"Quota exceeded for {video_path} (chunk {chunk_index}-{chunk_index+len(chunk)}). "
                     f"Retrying in {wait_time} seconds... ({e})")
                 time.sleep(wait_time)

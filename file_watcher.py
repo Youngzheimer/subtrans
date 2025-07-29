@@ -2,6 +2,7 @@ import os
 import time
 import json
 from utils import log
+import config
 from video_processor import get_video_files, get_subtitle_info, check_existing_target_language
 from subtitle_extractor import extract_multiple_subtitles, cleanup_subtitle_files
 from translator import SubtitleTranslator

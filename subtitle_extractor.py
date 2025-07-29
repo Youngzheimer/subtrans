@@ -4,6 +4,7 @@ from utils import log
 import pysrt
 import ass
 import webvtt
+from utils import Config
 
 def extract_subtitle(video_path, subtitle_relative_index):
     """비디오에서 자막을 추출"""
@@ -72,15 +73,17 @@ def extract_multiple_subtitles(video_file, subtitles):
         log(f"No valid subtitle lines extracted from {first_extracted_path}. Skipping translation.")
         return None, []
     
+    # 설정 객체 생성
+    config_obj = Config()
+    
     # Determine number of subtitles to extract based on the first subtitle length
-    if len(lines) < 100:
-        num_to_extract_total = min(len(subtitles), 4)
-    elif len(lines) < 200:
-        num_to_extract_total = min(len(subtitles), 3)
-    elif len(lines) < 300:
-        num_to_extract_total = min(len(subtitles), 2)
-    else:
-        num_to_extract_total = min(len(subtitles), 1)
+    line_count = len(lines)
+    num_to_extract_total = config_obj.SUBTITLE_STREAMS_TO_EXTRACT[-1]  # 기본값: 가장 적은 수
+    
+    for i, threshold in enumerate(config_obj.SUBTITLE_LINE_THRESHOLDS):
+        if line_count < threshold:
+            num_to_extract_total = min(len(subtitles), config_obj.SUBTITLE_STREAMS_TO_EXTRACT[i])
+            break
     
     log(f"Total {len(lines)} lines of subtitles, extracting {num_to_extract_total} subtitle streams from {video_file}.")
     
